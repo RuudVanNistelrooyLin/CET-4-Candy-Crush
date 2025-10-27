@@ -247,60 +247,6 @@
   </div>
 
   <script>
-    // 英语四级单词库（按难度分级）
-    const wordBank = {
-      level1: [
-        { english: "hello", chinese: "你好" },
-        { english: "cat", chinese: "猫" },
-        { english: "dog", chinese: "狗" },
-        { english: "book", chinese: "书" },
-        { english: "water", chinese: "水" },
-        { english: "food", chinese: "食物" },
-        { english: "sun", chinese: "太阳" },
-        { english: "moon", chinese: "月亮" }
-      ],
-      level2: [
-        { english: "beautiful", chinese: "美丽的" },
-        { english: "important", chinese: "重要的" },
-        { english: "different", chinese: "不同的" },
-        { english: "difficult", chinese: "困难的" },
-        { english: "success", chinese: "成功" },
-        { english: "failure", chinese: "失败" },
-        { english: "opportunity", chinese: "机会" },
-        { english: "challenge", chinese: "挑战" }
-      ],
-      level3: [
-        { english: "significant", chinese: "重要的" },
-        { english: "consequence", chinese: "结果" },
-        { english: "environment", chinese: "环境" },
-        { english: "development", chinese: "发展" },
-        { english: "establish", chinese: "建立" },
-        { english: "achieve", chinese: "实现" },
-        { english: "analyze", chinese: "分析" },
-        { english: "evaluate", chinese: "评估" }
-      ],
-      level4: [
-        { english: "sophisticated", chinese: "复杂的" },
-        { english: "comprehensive", chinese: "全面的" },
-        { english: "substantial", chinese: "实质的" },
-        { english: "controversy", chinese: "争议" },
-        { english: "phenomenon", chinese: "现象" },
-        { english: "implement", chinese: "实施" },
-        { english: "demonstrate", chinese: "证明" },
-        { english: "interpret", chinese: "解释" }
-      ],
-      level5: [
-        { english: "sustainable", chinese: "可持续的" },
-        { english: "innovative", chinese: "创新的" },
-        { english: "strategic", chinese: "战略的" },
-        { english: "efficient", chinese: "高效的" },
-        { english: "adequate", chinese: "充足的" },
-        { english: "consistent", chinese: "一致的" },
-        { english: "flexible", chinese: "灵活的" },
-        { english: "reliable", chinese: "可靠的" }
-      ]
-    };
-
     // 游戏状态
     let gameState = {
       level: 1,
@@ -309,13 +255,50 @@
       totalPairs: 4,
       canFlip: true,
       mode: 'normal', // 'normal' 或 'review'
-      mistakes: JSON.parse(localStorage.getItem('mistakes')) || []
+      mistakes: JSON.parse(localStorage.getItem('mistakes')) || [],
+      wordBank: null // 将在加载词汇库后设置
     };
+
+    // 实际加载外部JSON文件的代码
+    function loadWordBank() {
+      // 加载A-Z.json文件
+      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      const promises = alphabet.map(letter => 
+        fetch(`${letter}.json`)
+          .then(response => response.json())
+          .catch(() => {
+            console.warn(`无法加载 ${letter}.json，使用空数组`);
+            return [];
+          })
+      );
+
+      return Promise.all(promises).then(results => {
+        // 将所有字母的词汇合并
+        const allWords = results.flat();
+        
+        // 按难度分组
+        const wordBank = {
+          level1: allWords.slice(0, 200),   // 简单词汇
+          level2: allWords.slice(200, 400), // 中等词汇
+          level3: allWords.slice(400, 600), // 较难词汇
+          level4: allWords.slice(600, 800), // 难词汇
+          level5: allWords.slice(800)       // 最难词汇
+        };
+        
+        gameState.wordBank = wordBank;
+        return wordBank;
+      });
+    }
 
     // 获取当前难度级别的单词
     function getLevelWords(level) {
+      if (!gameState.wordBank) {
+        console.error("词汇库未加载");
+        return [];
+      }
+      
       const levelKey = `level${level}`;
-      const availableWords = wordBank[levelKey] || wordBank.level5;
+      const availableWords = gameState.wordBank[levelKey] || gameState.wordBank.level5;
       
       // 随机选择4对单词
       const selectedWords = [];
@@ -370,8 +353,8 @@
       
       // 创建中英文卡片对
       words.forEach(word => {
-        cards.push({ type: 'english', text: word.english, answer: word.chinese, original: word });
-        cards.push({ type: 'chinese', text: word.chinese, answer: word.english, original: word });
+        cards.push({ type: 'english', text: word.word, answer: word.mean, original: word });
+        cards.push({ type: 'chinese', text: word.mean, answer: word.word, original: word });
       });
       
       // 打乱卡片顺序
@@ -384,8 +367,8 @@
         cardElement.textContent = card.text;
         cardElement.dataset.index = index;
         cardElement.dataset.answer = card.answer;
-        cardElement.dataset.english = card.original.english;
-        cardElement.dataset.chinese = card.original.chinese;
+        cardElement.dataset.english = card.original.word;
+        cardElement.dataset.chinese = card.original.mean;
         cardElement.addEventListener('click', () => flipCard(cardElement));
         container.appendChild(cardElement);
       });
@@ -605,9 +588,11 @@
       initGame();
     });
 
-    // 初始化游戏
-    updateMistakesCount();
-    initGame();
+    // 初始化游戏 - 首先加载词汇库
+    loadWordBank().then(() => {
+      updateMistakesCount();
+      initGame();
+    });
   </script>
 </body>
 </html>
