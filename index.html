@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>英语四级单词消消乐</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 15px;
+      color: white;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .level-info {
+      font-size: 1.2rem;
+      background: rgba(255,255,255,0.2);
+      padding: 8px 15px;
+      border-radius: 20px;
+      display: inline-block;
+      margin: 5px 0;
+    }
+
+    .game-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      max-width: 100%;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .card {
+      aspect-ratio: 3/4;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      color: #333;
+      word-break: break-word;
+    }
+
+    .card.english {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      color: white;
+    }
+
+    .card.chinese {
+      background: linear-gradient(135deg, #0fd850 0%, #f9f047 100%);
+      color: white;
+    }
+
+    .card.flipped {
+      transform: scale(0.95);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .card.matched {
+      opacity: 0.5;
+      transform: scale(0.9);
+    }
+
+    .message {
+      text-align: center;
+      font-size: 1.2rem;
+      height: 30px;
+      margin: 15px 0;
+    }
+
+    .difficulty-indicator {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-top: 10px;
+    }
+
+    .difficulty-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+    }
+
+    .difficulty-dot.active {
+      background: #ffd166;
+    }
+
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .btn {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      font-size: 1.1rem;
+      border-radius: 50px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 200px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn.secondary {
+      background: #4ecdc4;
+    }
+
+    .mistakes-section {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 400px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 15px;
+      display: none;
+    }
+
+    .mistakes-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .mistakes-count {
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .mistake-item {
+      background: rgba(255,255,255,0.2);
+      padding: 10px;
+      border-radius: 8px;
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .mistake-word {
+      font-weight: bold;
+    }
+
+    .mistake-remove {
+      color: #ff6b6b;
+      cursor: pointer;
+    }
+
+    .review-controls {
+      margin-top: 15px;
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 400px;
+      justify-content: center;
+    }
+
+    .level-up-animation {
+      animation: levelUp 0.5s ease;
+    }
+
+    @keyframes levelUp {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        font-size: 1rem;
+        padding: 8px;
+      }
+      
+      .header h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>单词消消乐</h1>
+    <div class="level-info">第 <span id="level">1</span> 关</div>
+    <div class="difficulty-indicator" id="difficulty-indicators"></div>
+  </div>
+
+  <div class="message" id="message"></div>
+  
+  <div class="game-container" id="game-container"></div>
+
+  <div class="controls">
+    <button class="btn secondary" id="mistakes-btn">查看错词本 (<span id="mistakes-count">0</span>)</button>
+  </div>
+
+  <div class="review-controls" id="review-controls" style="display:none;">
+    <button class="btn secondary" id="back-to-normal">返回正常模式</button>
+  </div>
+
+  <div class="mistakes-section" id="mistakes-section">
+    <div class="mistakes-header">
+      <div class="mistakes-count">错词本 (<span id="mistakes-count-display">0</span>)</div>
+      <button class="btn secondary" id="close-mistakes">关闭</button>
+    </div>
+    <div id="mistakes-list"></div>
+  </div>
+
+  <script>
+    // 英语四级单词库（按难度分级）
+    const wordBank = {
+      level1: [
+        { english: "hello", chinese: "你好" },
+        { english: "cat", chinese: "猫" },
+        { english: "dog", chinese: "狗" },
+        { english: "book", chinese: "书" },
+        { english: "water", chinese: "水" },
+        { english: "food", chinese: "食物" },
+        { english: "sun", chinese: "太阳" },
+        { english: "moon", chinese: "月亮" }
+      ],
+      level2: [
+        { english: "beautiful", chinese: "美丽的" },
+        { english: "important", chinese: "重要的" },
+        { english: "different", chinese: "不同的" },
+        { english: "difficult", chinese: "困难的" },
+        { english: "success", chinese: "成功" },
+        { english: "failure", chinese: "失败" },
+        { english: "opportunity", chinese: "机会" },
+        { english: "challenge", chinese: "挑战" }
+      ],
+      level3: [
+        { english: "significant", chinese: "重要的" },
+        { english: "consequence", chinese: "结果" },
+        { english: "environment", chinese: "环境" },
+        { english: "development", chinese: "发展" },
+        { english: "establish", chinese: "建立" },
+        { english: "achieve", chinese: "实现" },
+        { english: "analyze", chinese: "分析" },
+        { english: "evaluate", chinese: "评估" }
+      ],
+      level4: [
+        { english: "sophisticated", chinese: "复杂的" },
+        { english: "comprehensive", chinese: "全面的" },
+        { english: "substantial", chinese: "实质的" },
+        { english: "controversy", chinese: "争议" },
+        { english: "phenomenon", chinese: "现象" },
+        { english: "implement", chinese: "实施" },
+        { english: "demonstrate", chinese: "证明" },
+        { english: "interpret", chinese: "解释" }
+      ],
+      level5: [
+        { english: "sustainable", chinese: "可持续的" },
+        { english: "innovative", chinese: "创新的" },
+        { english: "strategic", chinese: "战略的" },
+        { english: "efficient", chinese: "高效的" },
+        { english: "adequate", chinese: "充足的" },
+        { english: "consistent", chinese: "一致的" },
+        { english: "flexible", chinese: "灵活的" },
+        { english: "reliable", chinese: "可靠的" }
+      ]
+    };
+
+    // 游戏状态
+    let gameState = {
+      level: 1,
+      flippedCards: [],
+      matchedPairs: 0,
+      totalPairs: 4,
+      canFlip: true,
+      mode: 'normal', // 'normal' 或 'review'
+      mistakes: JSON.parse(localStorage.getItem('mistakes')) || []
+    };
+
+    // 获取当前难度级别的单词
+    function getLevelWords(level) {
+      const levelKey = `level${level}`;
+      const availableWords = wordBank[levelKey] || wordBank.level5;
+      
+      // 随机选择4对单词
+      const selectedWords = [];
+      const tempWords = [...availableWords];
+      for (let i = 0; i < 4; i++) {
+        const randomIndex = Math.floor(Math.random() * tempWords.length);
+        selectedWords.push(tempWords[randomIndex]);
+        tempWords.splice(randomIndex, 1);
+      }
+      
+      return selectedWords;
+    }
+
+    // 初始化游戏
+    function initGame() {
+      const container = document.getElementById('game-container');
+      container.innerHTML = '';
+      
+      let words = [];
+      
+      if (gameState.mode === 'review') {
+        // 复习模式：从错词本中获取单词
+        if (gameState.mistakes.length === 0) {
+          document.getElementById('message').textContent = '错词本为空，返回正常模式';
+          gameState.mode = 'normal';
+          setTimeout(() => {
+            initGame();
+          }, 1500);
+          return;
+        }
+        
+        // 随机选择错词本中的单词对
+        const selectedMistakes = [];
+        const tempMistakes = [...gameState.mistakes];
+        const count = Math.min(4, tempMistakes.length);
+        
+        for (let i = 0; i < count; i++) {
+          const randomIndex = Math.floor(Math.random() * tempMistakes.length);
+          selectedMistakes.push(tempMistakes[randomIndex]);
+          tempMistakes.splice(randomIndex, 1);
+        }
+        
+        words = selectedMistakes;
+        gameState.totalPairs = count;
+      } else {
+        // 正常模式：从当前关卡获取单词
+        words = getLevelWords(gameState.level);
+        gameState.totalPairs = 4;
+      }
+      
+      let cards = [];
+      
+      // 创建中英文卡片对
+      words.forEach(word => {
+        cards.push({ type: 'english', text: word.english, answer: word.chinese, original: word });
+        cards.push({ type: 'chinese', text: word.chinese, answer: word.english, original: word });
+      });
+      
+      // 打乱卡片顺序
+      cards = shuffleArray(cards);
+      
+      // 创建卡片元素
+      cards.forEach((card, index) => {
+        const cardElement = document.createElement('div');
+        cardElement.className = `card ${card.type}`;
+        cardElement.textContent = card.text;
+        cardElement.dataset.index = index;
+        cardElement.dataset.answer = card.answer;
+        cardElement.dataset.english = card.original.english;
+        cardElement.dataset.chinese = card.original.chinese;
+        cardElement.addEventListener('click', () => flipCard(cardElement));
+        container.appendChild(cardElement);
+      });
+      
+      // 更新关卡信息
+      if (gameState.mode === 'normal') {
+        document.getElementById('level').textContent = gameState.level;
+        document.querySelector('.header h1').className = 'level-up-animation';
+        setTimeout(() => {
+          document.querySelector('.header h1').className = '';
+        }, 500);
+      } else {
+        document.querySelector('.header h1').textContent = '错词复习';
+        document.getElementById('level').textContent = '复习';
+      }
+      
+      // 更新难度指示器
+      if (gameState.mode === 'normal') {
+        updateDifficultyIndicators();
+      }
+      
+      // 显示/隐藏返回按钮
+      document.getElementById('review-controls').style.display = 
+        gameState.mode === 'review' ? 'flex' : 'none';
+      
+      // 重置游戏状态
+      gameState.flippedCards = [];
+      gameState.matchedPairs = 0;
+      gameState.canFlip = true;
+      document.getElementById('message').textContent = '';
+    }
+
+    // 洗牌算法
+    function shuffleArray(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // 翻牌
+    function flipCard(cardElement) {
+      if (!gameState.canFlip) return;
+      if (cardElement.classList.contains('flipped')) return;
+      if (cardElement.classList.contains('matched')) return;
+      if (gameState.flippedCards.length >= 2) return;
+      
+      cardElement.classList.add('flipped');
+      gameState.flippedCards.push(cardElement);
+      
+      if (gameState.flippedCards.length === 2) {
+        gameState.canFlip = false;
+        checkMatch();
+      }
+    }
+
+    // 检查匹配
+    function checkMatch() {
+      const [card1, card2] = gameState.flippedCards;
+      const answer1 = card1.dataset.answer;
+      const text2 = card2.textContent;
+      
+      if (answer1 === text2) {
+        // 匹配成功
+        card1.classList.add('matched');
+        card2.classList.add('matched');
+        gameState.matchedPairs++;
+        
+        if (gameState.matchedPairs === gameState.totalPairs) {
+          // 全部匹配完成
+          if (gameState.mode === 'review') {
+            // 复习模式下，移除已掌握的单词
+            gameState.flippedCards.forEach(card => {
+              const english = card.dataset.english;
+              const chinese = card.dataset.chinese;
+              
+              // 从错词本中移除已掌握的单词
+              gameState.mistakes = gameState.mistakes.filter(mistake => 
+                !(mistake.english === english && mistake.chinese === chinese)
+              );
+            });
+            
+            localStorage.setItem('mistakes', JSON.stringify(gameState.mistakes));
+            updateMistakesCount();
+            
+            document.getElementById('message').textContent = `复习完成！已掌握 ${gameState.totalPairs} 个单词`;
+            setTimeout(() => {
+              gameState.mode = 'normal';
+              document.querySelector('.header h1').textContent = '单词消消乐';
+              initGame();
+            }, 1500);
+          } else {
+            // 正常模式下，进入下一关
+            document.getElementById('message').textContent = `第${gameState.level}关完成！进入第${gameState.level+1}关...`;
+            setTimeout(() => {
+              gameState.level++;
+              initGame();
+            }, 1500);
+          }
+        } else {
+          document.getElementById('message').textContent = '匹配成功！';
+          setTimeout(() => {
+            resetFlippedCards();
+          }, 500);
+        }
+      } else {
+        // 匹配失败，记录到错词本
+        const english1 = card1.dataset.english;
+        const chinese1 = card1.dataset.chinese;
+        const english2 = card2.dataset.english;
+        const chinese2 = card2.dataset.chinese;
+        
+        // 添加两个单词对到错词本
+        const mistake1 = { english: english1, chinese: chinese1 };
+        const mistake2 = { english: english2, chinese: chinese2 };
+        
+        // 避免重复添加
+        if (!gameState.mistakes.some(m => m.english === mistake1.english && m.chinese === mistake1.chinese)) {
+          gameState.mistakes.push(mistake1);
+        }
+        if (!gameState.mistakes.some(m => m.english === mistake2.english && m.chinese === mistake2.chinese)) {
+          gameState.mistakes.push(mistake2);
+        }
+        
+        localStorage.setItem('mistakes', JSON.stringify(gameState.mistakes));
+        updateMistakesCount();
+        
+        document.getElementById('message').textContent = '不匹配，已添加到错词本';
+        setTimeout(() => {
+          resetFlippedCards();
+        }, 1000);
+      }
+    }
+
+    // 重置翻转的卡片
+    function resetFlippedCards() {
+      gameState.flippedCards.forEach(card => {
+        card.classList.remove('flipped');
+      });
+      gameState.flippedCards = [];
+      gameState.canFlip = true;
+      document.getElementById('message').textContent = '';
+    }
+
+    // 更新难度指示器
+    function updateDifficultyIndicators() {
+      const indicatorsContainer = document.getElementById('difficulty-indicators');
+      indicatorsContainer.innerHTML = '';
+      
+      for (let i = 1; i <= 5; i++) {
+        const dot = document.createElement('div');
+        dot.className = `difficulty-dot ${i <= gameState.level ? 'active' : ''}`;
+        indicatorsContainer.appendChild(dot);
+      }
+    }
+
+    // 更新错词本计数
+    function updateMistakesCount() {
+      const count = gameState.mistakes.length;
+      document.getElementById('mistakes-count').textContent = count;
+      document.getElementById('mistakes-count-display').textContent = count;
+    }
+
+    // 显示错词本
+    function showMistakes() {
+      const mistakesSection = document.getElementById('mistakes-section');
+      const mistakesList = document.getElementById('mistakes-list');
+      mistakesSection.style.display = 'block';
+      
+      if (gameState.mistakes.length === 0) {
+        mistakesList.innerHTML = '<div class="mistake-item">错词本为空</div>';
+      } else {
+        mistakesList.innerHTML = '';
+        gameState.mistakes.forEach((mistake, index) => {
+          const item = document.createElement('div');
+          item.className = 'mistake-item';
+          item.innerHTML = `
+            <div class="mistake-word">${mistake.english} - ${mistake.chinese}</div>
+            <span class="mistake-remove" data-index="${index}">删除</span>
+          `;
+          mistakesList.appendChild(item);
+        });
+        
+        // 添加删除事件监听
+        document.querySelectorAll('.mistake-remove').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const index = e.target.dataset.index;
+            gameState.mistakes.splice(index, 1);
+            localStorage.setItem('mistakes', JSON.stringify(gameState.mistakes));
+            updateMistakesCount();
+            showMistakes();
+          });
+        });
+      }
+    }
+
+    // 事件监听
+    document.getElementById('mistakes-btn').addEventListener('click', () => {
+      if (gameState.mistakes.length > 0) {
+        gameState.mode = 'review';
+        document.getElementById('mistakes-section').style.display = 'none';
+        initGame();
+      } else {
+        showMistakes();
+      }
+    });
+    
+    document.getElementById('close-mistakes').addEventListener('click', () => {
+      document.getElementById('mistakes-section').style.display = 'none';
+    });
+    
+    document.getElementById('back-to-normal').addEventListener('click', () => {
+      gameState.mode = 'normal';
+      document.querySelector('.header h1').textContent = '单词消消乐';
+      initGame();
+    });
+
+    // 初始化游戏
+    updateMistakesCount();
+    initGame();
+  </script>
+</body>
+</html>
